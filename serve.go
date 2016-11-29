@@ -8,7 +8,7 @@ import (
 	"strings"
 )
 
-func serveHTTP(w http.ResponseWriter, req *http.Request, rslv resolver) {
+func serveHTTP(w http.ResponseWriter, req *http.Request, rslv resolver, domain string) {
 	connect := req.Header.Get("Connection")
 	upgrade := req.Header.Get("Upgrade")
 
@@ -18,8 +18,13 @@ func serveHTTP(w http.ResponseWriter, req *http.Request, rslv resolver) {
 		host = req.Host
 	}
 
+	if !strings.HasSuffix(host, domain) {
+		w.WriteHeader(http.StatusServiceUnavailable)
+		return
+	}
+
 	// Resolve the hostname to a list of potential services.
-	srv, err := rslv.resolve(host)
+	srv, err := rslv.resolve(host[:len(host)-len(domain)])
 
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
@@ -32,10 +37,7 @@ func serveHTTP(w http.ResponseWriter, req *http.Request, rslv resolver) {
 	}
 
 	host = srv[0].host
-
-	if len(port) == 0 {
-		port = strconv.Itoa(srv[0].port)
-	}
+	port = strconv.Itoa(srv[0].port)
 
 	// Prepare the request to be forwarded to the service.
 	setProxyHeaders(req)

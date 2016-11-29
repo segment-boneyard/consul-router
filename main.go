@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"strings"
 	"syscall"
 	"time"
 
@@ -82,6 +83,13 @@ func main() {
 		consulResolver{address: config.consul},
 	)))
 
+	// The domain name served by the router, prefix with '.' so it doesn't have
+	// to be done over and over in each http request.
+	domain := config.domain
+	if !strings.HasPrefix(domain, ".") {
+		domain = "." + domain
+	}
+
 	// Gracefully shutdown when receiving a signal by closing the datadog client
 	// so pending stats are reported before terminating.
 	go func() {
@@ -115,7 +123,7 @@ func main() {
 		ErrorLog:       log_ecslogs.New(os.Stderr, "", 0),
 
 		Handler: httpstats.NewHandler(nil, http.HandlerFunc(func(res http.ResponseWriter, req *http.Request) {
-			serveHTTP(res, req, rslv)
+			serveHTTP(res, req, rslv, domain)
 		})),
 	}).ListenAndServe(); err != nil {
 		log.WithError(err).Fatal("failed to serve http requests")
