@@ -24,7 +24,8 @@ test:
       --volume ${GOPATH%%:*}/src:/go/src
       --volume ${PWD}:/go/src/github.com/${CIRCLE_PROJECT_USERNAME}/${CIRCLE_PROJECT_REPONAME}
       --workdir /go/src/github.com/${CIRCLE_PROJECT_USERNAME}/${CIRCLE_PROJECT_REPONAME}
-      segment/golang-private:latest
+      --env CGO_ENABLED=0
+      segment/golang-private:latest go.test='govendor test -v -cover +local'
 
 deployment:
   release:
