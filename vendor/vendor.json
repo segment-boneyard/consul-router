@@ -1,0 +1,97 @@
+{
+	"comment": "",
+	"ignore": "test",
+	"package": [
+		{
+			"checksumSHA1": "Ur88QI//9Ue82g83qvBSakGlzVg=",
+			"path": "github.com/apex/log",
+			"revision": "4ea85e918cc8389903d5f12d7ccac5c23ab7d89b",
+			"revisionTime": "2016-09-05T15:13:04Z"
+		},
+		{
+			"checksumSHA1": "o5a5xWoaGDKEnNy0W7TikB66lMc=",
+			"path": "github.com/apex/log/handlers/text",
+			"revision": "4ea85e918cc8389903d5f12d7ccac5c23ab7d89b",
+			"revisionTime": "2016-09-05T15:13:04Z"
+		},
+		{
+			"checksumSHA1": "d9PxF1XQGLMJZRct2R8qVM/eYlE=",
+			"path": "github.com/hashicorp/golang-lru",
+			"revision": "0a025b7e63adc15a622f29b0b2c4c3848243bbf6",
+			"revisionTime": "2016-08-13T22:13:03Z"
+		},
+		{
+			"checksumSHA1": "9hffs0bAIU6CquiRhKQdzjHnKt0=",
+			"path": "github.com/hashicorp/golang-lru/simplelru",
+			"revision": "0a025b7e63adc15a622f29b0b2c4c3848243bbf6",
+			"revisionTime": "2016-08-13T22:13:03Z"
+		},
+		{
+			"checksumSHA1": "ynJSWoF6v+3zMnh9R0QmmG6iGV8=",
+			"path": "github.com/pkg/errors",
+			"revision": "248dadf4e9068a0b3e79f02ed0a610d935de5302",
+			"revisionTime": "2016-10-29T09:36:37Z"
+		},
+		{
+			"checksumSHA1": "exBQJLaBXogorrNlmjdaVifVdpc=",
+			"path": "github.com/segmentio/ecs-logs-go",
+			"revision": "49d047bbc69ccb12dfc6ad91e763d8f817550012",
+			"revisionTime": "2016-07-26T19:29:10Z"
+		},
+		{
+			"checksumSHA1": "bdRkX6PW5jL8fPYFPKRIkxctTRU=",
+			"path": "github.com/segmentio/ecs-logs-go/apex",
+			"revision": "49d047bbc69ccb12dfc6ad91e763d8f817550012",
+			"revisionTime": "2016-07-26T19:29:10Z"
+		},
+		{
+			"checksumSHA1": "afYiRmcXoIVksiKwc+aD5RDFKRQ=",
+			"path": "github.com/segmentio/ecs-logs-go/log",
+			"revision": "49d047bbc69ccb12dfc6ad91e763d8f817550012",
+			"revisionTime": "2016-07-26T19:29:10Z"
+		},
+		{
+			"checksumSHA1": "vjzNFG8//98I5XBNfsjKuzdMZ24=",
+			"path": "github.com/segmentio/stats",
+			"revision": "105c1f693fc969290d44c7e3f9e9048fc4fd9993",
+			"revisionTime": "2016-11-29T10:04:37Z"
+		},
+		{
+			"checksumSHA1": "HhUJM+3g/L/m4A9iAbd8e366s3U=",
+			"path": "github.com/segmentio/stats/datadog",
+			"revision": "105c1f693fc969290d44c7e3f9e9048fc4fd9993",
+			"revisionTime": "2016-11-29T10:04:37Z"
+		},
+		{
+			"checksumSHA1": "BFRI+/MCa0Vg/ChNOtmQb1lMUYg=",
+			"path": "github.com/segmentio/stats/httpstats",
+			"revision": "105c1f693fc969290d44c7e3f9e9048fc4fd9993",
+			"revisionTime": "2016-11-29T10:04:37Z"
+		},
+		{
+			"checksumSHA1": "poEpVOWzVNefnfJMu+Z6QgzXueQ=",
+			"path": "github.com/segmentio/stats/iostats",
+			"revision": "105c1f693fc969290d44c7e3f9e9048fc4fd9993",
+			"revisionTime": "2016-11-29T10:04:37Z"
+		},
+		{
+			"checksumSHA1": "PNxnfw2OtlfrjwK+RQOP9gqBnYI=",
+			"path": "github.com/segmentio/stats/netstats",
+			"revision": "105c1f693fc969290d44c7e3f9e9048fc4fd9993",
+			"revisionTime": "2016-11-29T10:04:37Z"
+		},
+		{
+			"checksumSHA1": "9C4Av3ypK5pi173F76ogJT/d8x4=",
+			"path": "golang.org/x/crypto/ssh/terminal",
+			"revision": "ede567c8e044a5913dad1d1af3696d9da953104c",
+			"revisionTime": "2016-11-04T19:41:44Z"
+		},
+		{
+			"checksumSHA1": "MlTI84eWAFvqeRgXxBtjRYHk1yQ=",
+			"path": "golang.org/x/sys/unix",
+			"revision": "30237cf4eefd639b184d1f2cb77a581ea0be8947",
+			"revisionTime": "2016-11-19T15:29:01Z"
+		}
+	],
+	"rootPath": "github.com/segmentio/consul-router"
+}
