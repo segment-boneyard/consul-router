@@ -12,7 +12,7 @@ func setProxyHeaders(req *http.Request) {
 func removeHopByHopHeaders(req *http.Request) {
 	// Remove headers listed in the Connection header.
 	for _, c := range req.Header["Connection"] {
-		delete(req.Header, c)
+		req.Header.Del(c)
 	}
 
 	// Remove hop-by-hop headers.
@@ -25,7 +25,7 @@ func removeHopByHopHeaders(req *http.Request) {
 		"Proxy-Authentication",
 		"Upgrade",
 	} {
-		delete(req.Header, h)
+		req.Header.Del(h)
 	}
 
 	// These fields are populated by the standard http server implementation but
