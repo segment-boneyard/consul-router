@@ -1,7 +1,9 @@
 package main
 
 import (
+	"fmt"
 	"reflect"
+	"strconv"
 	"testing"
 	"time"
 )
@@ -13,11 +15,7 @@ func TestCache(t *testing.T) {
 		"host-3": []service{{"host-3", 3000, []string{"A", "B", "C"}}},
 	}
 
-	cache := cached(cacheConfig{
-		timeout: time.Second,
-		size:    2,
-		rslv:    services,
-	})
+	cache := cached(time.Second, services)
 
 	for _, name := range []string{"host-1", "host-2", "host-3"} {
 		t.Run(name, func(t *testing.T) {
@@ -38,4 +36,24 @@ func TestCache(t *testing.T) {
 			t.Errorf("%#v", srv)
 		}
 	})
+}
+
+func BenchmarkCache(b *testing.B) {
+	for _, size := range [...]int{1, 10, 100, 1000} {
+		name, services := make([]string, size), make(serviceMap, size)
+
+		for i := 0; i != size; i++ {
+			name := fmt.Sprintf("host-%d", i+1)
+			names[i] = name
+			services[name] = []service{{name, 4242, nil}}
+		}
+
+		cache := cached(1*time.Minute, services)
+
+		b.Run(strconv.Itoa(size), func(b *testing.B) {
+			for i := 0; i != b.N; i++ {
+				cache.resolve(names[i%len(names)])
+			}
+		})
+	}
 }

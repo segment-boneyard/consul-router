@@ -50,7 +50,6 @@ func main() {
 		writeTimeout time.Duration
 		idleTimeout  time.Duration
 
-		cacheSize           int
 		maxIdleConns        int
 		maxIdleConnsPerHost int
 		maxHeaderBytes      int
@@ -66,7 +65,6 @@ func main() {
 	flag.DurationVar(&config.readTimeout, "read-timeout", 30*time.Second, "The timeout for reading http requests")
 	flag.DurationVar(&config.writeTimeout, "write-timeout", 30*time.Second, "The timeout for writing http requests")
 	flag.DurationVar(&config.idleTimeout, "idle-timeout", 90*time.Second, "The timeout for idle connections")
-	flag.IntVar(&config.cacheSize, "cache-size", 1000, "The maximum number of cached hostnames")
 	flag.IntVar(&config.maxIdleConns, "max-idle-conns", 10000, "The maximum number of idle connections kept")
 	flag.IntVar(&config.maxIdleConnsPerHost, "max-idle-conns-per-host", 100, "The maximum number of idle connections kept per host")
 	flag.IntVar(&config.maxHeaderBytes, "max-header-bytes", 65536, "The maximum number of bytes allowed in http headers")
@@ -79,10 +77,8 @@ func main() {
 	defer dd.Close()
 
 	// The consul-based resolver used to lookup services.
-	rslv := shuffled(cached(cacheConfig{
-		timeout: config.cacheTimeout,
-		size:    config.cacheSize,
-		rslv:    consulResolver{address: config.consul},
+	rslv := shuffled(cached(config.cacheTimeout, consulResolver{
+		address: config.consul,
 	}))
 
 	// Gracefully shutdown when receiving a signal by closing the datadog client
