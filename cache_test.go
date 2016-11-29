@@ -40,7 +40,7 @@ func TestCache(t *testing.T) {
 
 func BenchmarkCache(b *testing.B) {
 	for _, size := range [...]int{1, 10, 100, 1000} {
-		name, services := make([]string, size), make(serviceMap, size)
+		names, services := make([]string, size), make(serviceMap, size)
 
 		for i := 0; i != size; i++ {
 			name := fmt.Sprintf("host-%d", i+1)
