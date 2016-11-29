@@ -79,11 +79,11 @@ func main() {
 	defer dd.Close()
 
 	// The consul-based resolver used to lookup services.
-	rslv := newCache(cacheConfig{
+	rslv := shuffled(cached(cacheConfig{
 		timeout: config.cacheTimeout,
 		size:    config.cacheSize,
 		rslv:    consulResolver{address: config.consul},
-	})
+	}))
 
 	// Gracefully shutdown when receiving a signal by closing the datadog client
 	// so pending stats are reported before terminating.

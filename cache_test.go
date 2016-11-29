@@ -13,7 +13,7 @@ func TestCache(t *testing.T) {
 		"host-3": []service{{"host-3", 3000, []string{"A", "B", "C"}}},
 	}
 
-	cache := newCache(cacheConfig{
+	cache := cached(cacheConfig{
 		timeout: time.Second,
 		size:    2,
 		rslv:    services,

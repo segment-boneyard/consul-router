@@ -2,7 +2,6 @@ package main
 
 import (
 	"encoding/json"
-	"math/rand"
 	"net/http"
 	"strings"
 
@@ -50,10 +49,8 @@ func (r consulResolver) resolve(name string) (srv []service, err error) {
 
 	srv = make([]service, len(list))
 
-	// Shuffle the output to load balance connections between hosts.
-	for i, j := range rand.Perm(len(list)) {
-		s := &list[i]
-		srv[j] = service{
+	for i, s := range list {
+		srv[i] = service{
 			host: s.Address,
 			port: s.ServicePort,
 			tags: s.ServiceTags,

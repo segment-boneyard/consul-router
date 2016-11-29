@@ -16,6 +16,14 @@ type resolver interface {
 	resolve(name string) (srv []service, err error)
 }
 
+// The resolverFunc type implements the resolver interface and makes it possible
+// for simple functions to be used as resolvers.
+type resolverFunc func(string) ([]service, error)
+
+func (f resolverFunc) resolve(name string) ([]service, error) {
+	return f(name)
+}
+
 // The service structure represent an endpoint that the program uses to forward
 // requests to.
 type service struct {

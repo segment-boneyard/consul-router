@@ -29,8 +29,8 @@ type cacheEntry struct {
 	exp time.Time
 }
 
-// newCache returns a new cache object configured with config.
-func newCache(config cacheConfig) *cache {
+// cached returns a new cache object configured with config.
+func cached(config cacheConfig) *cache {
 	lruCache, _ := lru.New(config.size)
 	return &cache{
 		timeout: config.timeout,
