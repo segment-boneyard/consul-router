@@ -10,13 +10,11 @@ func shuffled(rslv resolver) resolver {
 			return
 		}
 
-		rnd := make([]service, len(srv))
-
-		for i, j := range rand.Perm(len(srv)) {
-			rnd[i] = srv[j]
+		for i := range srv {
+			j := rand.Intn(i + 1)
+			srv[i], srv[j] = srv[j], srv[i]
 		}
 
-		srv = rnd
 		return
 	})
 }

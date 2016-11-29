@@ -59,7 +59,7 @@ func (c *cache) resolve(name string) (srv []service, err error) {
 				srv = e.srv
 				err = e.err
 				e.RUnlock()
-				return
+				break
 			}
 		}
 
@@ -74,8 +74,14 @@ func (c *cache) resolve(name string) (srv []service, err error) {
 		e.srv = srv
 		e.err = err
 		e.Unlock()
-		return
+		break
 	}
+
+	// Making a copy is important, the caller becomes the owner of the returned
+	// service list and may modify its content. We don't want this to affect the
+	// content of the cache.
+	srv = copyServices(srv)
+	return
 }
 
 func (c *cache) lookup(name string, now time.Time) *cacheEntry {

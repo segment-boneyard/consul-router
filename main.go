@@ -42,7 +42,7 @@ func main() {
 		consul  string
 		datadog string
 		domain  string
-		tags    string
+		prefer  string
 
 		cacheTimeout time.Duration
 		dialTimeout  time.Duration
@@ -59,7 +59,7 @@ func main() {
 	flag.StringVar(&config.consul, "consul", "localhost:8500", "The address at which the router can access a consul agent")
 	flag.StringVar(&config.datadog, "datadog", "localhost:8125", "The address at which the router will send datadog metrics")
 	flag.StringVar(&config.domain, "domain", "localhost", "The domain for which the router will accept requests")
-	flag.StringVar(&config.tags, "tags", "", "A comma-separated list of tags that the router prefers when forwarding requests")
+	flag.StringVar(&config.prefer, "prefer", "", "The services with a tag matching the preferred value will be favored by the router")
 	flag.DurationVar(&config.cacheTimeout, "cache-timeout", 10*time.Second, "The timeout for cached hostnames")
 	flag.DurationVar(&config.dialTimeout, "dial-timeout", 10*time.Second, "The timeout for dialing tcp connections")
 	flag.DurationVar(&config.readTimeout, "read-timeout", 30*time.Second, "The timeout for reading http requests")
@@ -77,9 +77,10 @@ func main() {
 	defer dd.Close()
 
 	// The consul-based resolver used to lookup services.
-	rslv := shuffled(cached(config.cacheTimeout, consulResolver{
-		address: config.consul,
-	}))
+	rslv := preferred(config.prefer, shuffled(cached(
+		config.cacheTimeout,
+		consulResolver{address: config.consul},
+	)))
 
 	// Gracefully shutdown when receiving a signal by closing the datadog client
 	// so pending stats are reported before terminating.

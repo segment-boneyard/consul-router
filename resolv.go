@@ -32,6 +32,14 @@ type service struct {
 	tags []string
 }
 
+// copyServices returns a slice backed by a new array which is a copy of srv,
+// note that only a shallow copy is performed.
+func copyServices(srv []service) []service {
+	cpy := make([]service, len(srv))
+	copy(cpy, srv)
+	return cpy
+}
+
 // The serviceList type implements the resolver interface but always returns the
 // same set of services, it's mostly intended to be used for tests.
 type serviceList []service
