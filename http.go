@@ -5,10 +5,6 @@ import (
 	"strconv"
 )
 
-func setProxyHeaders(req *http.Request) {
-	req.Header.Set("Forwarded", forwarded(req))
-}
-
 func removeHopByHopHeaders(req *http.Request) {
 	// Remove headers listed in the Connection header.
 	for _, c := range req.Header["Connection"] {

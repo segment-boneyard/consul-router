@@ -16,6 +16,7 @@ import (
 	"github.com/apex/log"
 	"github.com/apex/log/handlers/text"
 
+	ecslogs "github.com/segmentio/ecs-logs-go"
 	"github.com/segmentio/ecs-logs-go/apex"
 	"github.com/segmentio/ecs-logs-go/log"
 	"github.com/segmentio/stats/datadog"
@@ -120,7 +121,7 @@ func main() {
 		ReadTimeout:    config.readTimeout,
 		WriteTimeout:   config.writeTimeout,
 		MaxHeaderBytes: config.maxHeaderBytes,
-		ErrorLog:       log_ecslogs.New(os.Stderr, "", 0),
+		ErrorLog:       log_ecslogs.NewWithLevel(ecslogs.ERROR, os.Stderr, "", 0),
 
 		Handler: httpstats.NewHandler(nil, http.HandlerFunc(func(res http.ResponseWriter, req *http.Request) {
 			serveHTTP(res, req, rslv, domain)

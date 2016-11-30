@@ -2,10 +2,11 @@ package main
 
 import (
 	"encoding/json"
+	"errors"
 	"net/http"
 	"strings"
 
-	"github.com/pkg/errors"
+	"github.com/apex/log"
 )
 
 // The consulResolver is a resolver implementation that uses a consul agent to
@@ -26,7 +27,6 @@ func (r consulResolver) resolve(name string) (srv []service, err error) {
 	}
 
 	if res, err = http.Get(url); err != nil {
-		err = errors.Wrap(err, url)
 		return
 	}
 
@@ -37,25 +37,31 @@ func (r consulResolver) resolve(name string) (srv []service, err error) {
 		return
 	}
 
-	list := []struct {
-		Address     string
-		ServicePort int
-		ServiceTags []string
-	}{}
+	var list []struct {
+		Address     string   `json:"Address"`
+		ServicePort int      `json:"ServicePort"`
+		ServiceTags []string `json:"ServiceTags"`
+	}
 
 	if err = json.NewDecoder(res.Body).Decode(&list); err != nil {
 		return
 	}
 
-	srv = make([]service, len(list))
+	srv = make([]service, 0, len(list))
 
-	for i, s := range list {
-		srv[i] = service{
+	for _, s := range list {
+		srv = append(srv, service{
 			host: s.Address,
 			port: s.ServicePort,
 			tags: s.ServiceTags,
-		}
+		})
 	}
 
+	log.WithFields(log.Fields{
+		"name":     name,
+		"url":      url,
+		"status":   res.StatusCode,
+		"services": len(srv),
+	}).Info("consul service discovery")
 	return
 }

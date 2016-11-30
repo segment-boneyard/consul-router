@@ -6,6 +6,8 @@ import (
 	"net/http"
 	"strconv"
 	"strings"
+
+	"github.com/apex/log"
 )
 
 func serveHTTP(w http.ResponseWriter, req *http.Request, rslv resolver, domain string) {
@@ -20,6 +22,12 @@ func serveHTTP(w http.ResponseWriter, req *http.Request, rslv resolver, domain s
 
 	if !strings.HasSuffix(host, domain) {
 		w.WriteHeader(http.StatusServiceUnavailable)
+		log.WithFields(log.Fields{
+			"status": http.StatusServiceUnavailable,
+			"host":   host,
+			"domain": domain,
+			"reason": "the requested host doesn't belong to the domain served by the router",
+		}).Error(http.StatusText(http.StatusServiceUnavailable))
 		return
 	}
 
@@ -28,11 +36,22 @@ func serveHTTP(w http.ResponseWriter, req *http.Request, rslv resolver, domain s
 
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
+		log.WithFields(log.Fields{
+			"status": http.StatusInternalServerError,
+			"host":   host,
+			"error":  err,
+			"reason": "an error was returned by the resolver",
+		}).Error(http.StatusText(http.StatusInternalServerError))
 		return
 	}
 
 	if len(srv) == 0 {
 		w.WriteHeader(http.StatusBadGateway)
+		log.WithFields(log.Fields{
+			"status": http.StatusBadGateway,
+			"host":   host,
+			"reason": "no service returned by the resolver",
+		}).Error(http.StatusText(http.StatusBadGateway))
 		return
 	}
 
@@ -40,9 +59,16 @@ func serveHTTP(w http.ResponseWriter, req *http.Request, rslv resolver, domain s
 	port = strconv.Itoa(srv[0].port)
 
 	// Prepare the request to be forwarded to the service.
-	setProxyHeaders(req)
+	req.Host = net.JoinHostPort(host, port)
+	req.URL.Scheme = "http"
+	req.URL.Host = req.Host
+	req.Header.Set("Forwarded", forwarded(req))
+	req.Header.Set("Host", req.Host)
 	removeHopByHopHeaders(req)
-	req.URL.Host = net.JoinHostPort(host, port)
+
+	if len(req.URL.Scheme) == 0 {
+		req.URL.Scheme = "http"
+	}
 
 	// If this is a request for a protocol upgrade we open a new tcp connection
 	// to the service.
@@ -57,6 +83,12 @@ func serveHTTP(w http.ResponseWriter, req *http.Request, rslv resolver, domain s
 
 	if err != nil {
 		w.WriteHeader(http.StatusBadGateway)
+		log.WithFields(log.Fields{
+			"status": http.StatusBadGateway,
+			"host":   host,
+			"error":  err,
+			"reason": "forwarding the request to the service returned an error",
+		}).Error(http.StatusText(http.StatusBadGateway))
 		return
 	}
 
@@ -69,7 +101,5 @@ func serveHTTP(w http.ResponseWriter, req *http.Request, rslv resolver, domain s
 	// Send the response.
 	w.WriteHeader(res.StatusCode)
 	io.Copy(w, res.Body)
-
-	// Done.
 	res.Body.Close()
 }
