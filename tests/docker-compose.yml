@@ -1,0 +1,94 @@
+version: '2'
+
+services:
+  consul:
+    image: consul:latest
+    command: agent -server -dev -ui -bind 127.0.0.1 -log-level info
+    network_mode: host
+
+  registrator:
+    image: gliderlabs/registrator:latest
+    command: -ip 127.0.0.1 -cleanup -resync 10 -retry-attempts 20 -retry-interval 1000 consul://127.0.0.1:8500
+    volumes:
+      - /var/run/docker.sock:/tmp/docker.sock
+    depends_on:
+      - consul
+    network_mode: host
+
+  nginx-1:
+    image: nginx:alpine
+    command: nginx -c /etc/nginx/nginx.conf
+    ports:
+      - 127.0.0.1:0:80
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./files/hello-1.html:/etc/nginx/files/hello.html:ro
+    depends_on:
+      - registrator
+    environment:
+      SERVICE_NAME: nginx
+      SERVICE_CHECK_HTTP: /health
+      SERVICE_CHECK_INTERVAL: 10s
+      SERVICE_CHECK_TIMEOUT: 1s
+      SERVICE_TAGS: us-west-2a
+
+  nginx-2:
+    image: nginx:alpine
+    command: nginx -c /etc/nginx/nginx.conf
+    ports:
+      - 127.0.0.1:0:80
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./files/hello-2.html:/etc/nginx/files/hello.html:ro
+    depends_on:
+      - registrator
+    environment:
+      SERVICE_NAME: nginx
+      SERVICE_CHECK_HTTP: /health
+      SERVICE_CHECK_INTERVAL: 10s
+      SERVICE_CHECK_TIMEOUT: 1s
+      SERVICE_TAGS: us-west-2a
+
+  nginx-3:
+    image: nginx:alpine
+    command: nginx -c /etc/nginx/nginx.conf
+    ports:
+      - 127.0.0.1:0:80
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./files/hello-3.html:/etc/nginx/files/hello.html:ro
+    depends_on:
+      - registrator
+    environment:
+      SERVICE_NAME: nginx
+      SERVICE_CHECK_HTTP: /health
+      SERVICE_CHECK_INTERVAL: 10s
+      SERVICE_CHECK_TIMEOUT: 1s
+      SERVICE_TAGS: us-west-2b
+
+  consul-router-1:
+    image: segment/consul-router:ci
+    command: -bind :4000 -consul 127.0.0.1:8500 -domain segment.local
+    depends_on:
+      - nginx-1
+      - nginx-2
+      - nginx-3
+    network_mode: host
+
+  consul-router-2:
+    image: segment/consul-router:ci
+    command: -bind :4001 -consul 127.0.0.1:8500 -domain segment.local -prefer us-west-2a
+    depends_on:
+      - nginx-1
+      - nginx-2
+      - nginx-3
+    network_mode: host
+
+  consul-router-3:
+    image: segment/consul-router:ci
+    command: -bind :4002 -consul 127.0.0.1:8500 -domain segment.local -prefer us-west-2b
+    depends_on:
+      - nginx-1
+      - nginx-2
+      - nginx-3
+    network_mode: host
