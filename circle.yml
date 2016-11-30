@@ -8,7 +8,7 @@ dependencies:
   pre:
     - docker login -e ${DOCKER_EMAIL} -u ${DOCKER_USER} -p ${DOCKER_PASS}
   override:
-    - docker pull segment/golang-private:latest
+    - docker pull segment/golang:latest
 
 test:
   override:
@@ -25,7 +25,7 @@ test:
       --volume ${PWD}:/go/src/github.com/${CIRCLE_PROJECT_USERNAME}/${CIRCLE_PROJECT_REPONAME}
       --workdir /go/src/github.com/${CIRCLE_PROJECT_USERNAME}/${CIRCLE_PROJECT_REPONAME}
       --env CGO_ENABLED=0
-      segment/golang-private:latest go.test='govendor test -v -cover +local'
+      segment/golang:latest go.test='govendor test -v -cover +local'
 
 deployment:
   release:
