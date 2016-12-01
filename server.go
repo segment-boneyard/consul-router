@@ -6,6 +6,8 @@ import (
 	"net/http"
 	"strconv"
 	"strings"
+	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/apex/log"
@@ -18,9 +20,13 @@ type server struct {
 	blacklist *blacklist
 	cache     *cache
 	rslv      resolver
+	join      sync.WaitGroup
+	stop      uint32 // atomic flag
 }
 
 type serverConfig struct {
+	stop         <-chan struct{}
+	done         chan<- struct{}
 	rslv         resolver
 	domain       string
 	prefer       string
@@ -30,15 +36,39 @@ type serverConfig struct {
 func newServer(config serverConfig) *server {
 	c := cached(config.cacheTimeout, config.rslv)
 	b := blacklisted(config.cacheTimeout, c)
-	return &server{
+	s := &server{
 		domain:    config.domain,
 		blacklist: b,
 		cache:     c,
 		rslv:      preferred(config.prefer, b),
 	}
+
+	go func(s *server, stop <-chan struct{}, done chan<- struct{}) {
+		// Wait for a stop signal, when it arrives the server is marked for
+		// graceful shutdown and waits for in-flight requests to complete.
+		// Note that this is not a perfect graceful shutdown and there may still
+		// be some race conditions where requests are dropped but it's the best
+		// we can do considering the current net/http API.
+		<-stop
+		s.setStopped()
+		s.join.Wait()
+		close(done)
+	}(s, config.stop, config.done)
+
+	return s
 }
 
 func (s *server) ServeHTTP(w http.ResponseWriter, req *http.Request) {
+	s.join.Add(1)
+	defer s.join.Done()
+
+	// When the server is stopped we break here returning a 503.
+	if s.stopped() {
+		w.Header().Add("Connection", "close")
+		w.WriteHeader(http.StatusServiceUnavailable)
+		return
+	}
+
 	// If this is a request for a protocol upgrade we open a new tcp connection
 	// to the service.
 	if len(req.Header.Get("Upgrade")) != 0 {
@@ -132,14 +162,27 @@ func (s *server) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	// Configure the response header.
-	h := w.Header()
-	copyHeader(h, res.Header)
-	clearConnectionFields(h)
-	clearHopByHopFields(h)
+	// Configure the response header, remove headers that were not directed at
+	// the client, add 'Connection: close' if the server is terminating.
+	hdr := w.Header()
+	copyHeader(hdr, res.Header)
+	clearConnectionFields(hdr)
+	clearHopByHopFields(hdr)
+
+	if s.stopped() {
+		hdr.Add("Connection", "close")
+	}
 
 	// Send the response.
 	w.WriteHeader(res.StatusCode)
 	io.Copy(w, res.Body)
 	res.Body.Close()
+}
+
+func (s *server) setStopped() {
+	atomic.StoreUint32(&s.stop, 1)
+}
+
+func (s *server) stopped() bool {
+	return atomic.LoadUint32(&s.stop) != 0
 }
