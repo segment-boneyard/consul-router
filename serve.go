@@ -6,82 +6,101 @@ import (
 	"net/http"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/apex/log"
 )
 
-func serveHTTP(w http.ResponseWriter, req *http.Request, rslv resolver, domain string) {
-	connect := req.Header.Get("Connection")
-	upgrade := req.Header.Get("Upgrade")
+// The server type is a http handler that proxies requests and uses a resolver
+// to lookup the address to which it should send the requests.
+type server struct {
+	domain string
+	rslv   resolver
+}
 
-	host, port, _ := net.SplitHostPort(req.Host)
-
-	if len(host) == 0 {
-		host = req.Host
+func newServer(domain string, rslv resolver) *server {
+	return &server{
+		domain: domain,
+		rslv:   rslv,
 	}
+}
 
-	if !strings.HasSuffix(host, domain) {
-		w.WriteHeader(http.StatusServiceUnavailable)
-		log.WithFields(log.Fields{
-			"status": http.StatusServiceUnavailable,
-			"host":   host,
-			"domain": domain,
-			"reason": "the requested host doesn't belong to the domain served by the router",
-		}).Error(http.StatusText(http.StatusServiceUnavailable))
-		return
-	}
-
-	// Resolve the hostname to a list of potential services.
-	srv, err := rslv.resolve(host[:len(host)-len(domain)])
-
-	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		log.WithFields(log.Fields{
-			"status": http.StatusInternalServerError,
-			"host":   host,
-			"error":  err,
-			"reason": "an error was returned by the resolver",
-		}).Error(http.StatusText(http.StatusInternalServerError))
-		return
-	}
-
-	if len(srv) == 0 {
-		w.WriteHeader(http.StatusBadGateway)
-		log.WithFields(log.Fields{
-			"status": http.StatusBadGateway,
-			"host":   host,
-			"reason": "no service returned by the resolver",
-		}).Error(http.StatusText(http.StatusBadGateway))
-		return
-	}
-
-	host = srv[0].host
-	port = strconv.Itoa(srv[0].port)
-
-	// Prepare the request to be forwarded to the service.
-	req.Host = net.JoinHostPort(host, port)
-	req.URL.Scheme = "http"
-	req.URL.Host = req.Host
-	req.Header.Set("Forwarded", forwarded(req))
-	req.Header.Set("Host", req.Host)
-	removeHopByHopHeaders(req)
-
-	if len(req.URL.Scheme) == 0 {
-		req.URL.Scheme = "http"
-	}
-
+func (s *server) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	// If this is a request for a protocol upgrade we open a new tcp connection
 	// to the service.
-	if strings.EqualFold(connect, "Upgrade") && len(upgrade) != 0 {
+	if len(req.Header.Get("Upgrade")) != 0 {
 		// TODO: support protocol upgrades
 		w.WriteHeader(http.StatusNotImplemented)
 		return
 	}
 
-	// Forward the request to the resolved hostname.
-	res, err := http.DefaultTransport.RoundTrip(req)
+	if !strings.HasSuffix(req.Host, s.domain) {
+		w.WriteHeader(http.StatusServiceUnavailable)
+		log.WithFields(log.Fields{
+			"status": http.StatusServiceUnavailable,
+			"host":   req.Host,
+			"domain": s.domain,
+			"reason": "the requested host doesn't belong to the domain served by the router",
+		}).Error(http.StatusText(http.StatusServiceUnavailable))
+		return
+	}
 
-	if err != nil {
+	host := req.Host
+	name := host[:len(host)-len(s.domain)]
+	clearConnectionFields(req.Header)
+	clearHopByHopFields(req.Header)
+	clearRequestMetadata(req)
+
+	// Forward the request to the resolved hostname, connection errors are
+	// retried on idempotent methods, only if no bytes of the body have been
+	// transfered yet.
+	const maxAttempts = 10
+	var res *http.Response
+
+	body := &bodyReader{Reader: req.Body}
+	req.Body = body
+
+	for attempt := 0; true; attempt++ {
+		srv, err := s.rslv.resolve(name)
+
+		if err != nil {
+			w.WriteHeader(http.StatusInternalServerError)
+			log.WithFields(log.Fields{
+				"status": http.StatusInternalServerError,
+				"host":   host,
+				"error":  err,
+				"reason": "an error was returned by the resolver",
+			}).Error(http.StatusText(http.StatusInternalServerError))
+			return
+		}
+
+		if len(srv) == 0 {
+			w.WriteHeader(http.StatusBadGateway)
+			log.WithFields(log.Fields{
+				"status": http.StatusBadGateway,
+				"host":   host,
+				"reason": "no service returned by the resolver",
+			}).Error(http.StatusText(http.StatusBadGateway))
+			return
+		}
+
+		// Prepare the request to be forwarded to the service.
+		req.Host = srv[0].host
+		req.URL.Scheme = "http"
+		req.URL.Host = net.JoinHostPort(srv[0].host, strconv.Itoa(srv[0].port))
+		req.Header.Set("Forwarded", forwarded(req))
+		req.Header.Set("Host", req.Host)
+
+		if res, err = http.DefaultTransport.RoundTrip(req); err == nil {
+			break // success
+		}
+
+		if attempt < maxAttempts && body.n == 0 && idempotent(req.Method) {
+			// Backoff: 0ms, 10ms, 40ms, 90ms ... 1000ms
+			time.Sleep(time.Duration(attempt*attempt) * 10 * time.Millisecond)
+			continue
+		}
+
 		w.WriteHeader(http.StatusBadGateway)
 		log.WithFields(log.Fields{
 			"status": http.StatusBadGateway,
@@ -94,9 +113,9 @@ func serveHTTP(w http.ResponseWriter, req *http.Request, rslv resolver, domain s
 
 	// Configure the response header.
 	h := w.Header()
-	for k, v := range res.Header {
-		h[k] = v
-	}
+	copyHeader(h, res.Header)
+	clearConnectionFields(h)
+	clearHopByHopFields(h)
 
 	// Send the response.
 	w.WriteHeader(res.StatusCode)
