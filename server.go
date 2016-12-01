@@ -1,7 +1,6 @@
 package main
 
 import (
-	"io"
 	"net"
 	"net/http"
 	"strconv"
@@ -175,7 +174,7 @@ func (s *server) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 
 	// Send the response.
 	w.WriteHeader(res.StatusCode)
-	io.Copy(w, res.Body)
+	copyBytes(w, res.Body)
 	res.Body.Close()
 }
 
