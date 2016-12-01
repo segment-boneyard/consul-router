@@ -16,9 +16,8 @@ type cache struct {
 
 	// Mutable fields of the cache, the mutex must be locked to access them
 	// concurrently.
-	mutex      sync.RWMutex
-	cache      map[string]*cacheEntry
-	vaccumTime time.Time
+	mutex sync.RWMutex
+	cache map[string]*cacheEntry
 }
 
 type cacheEntry struct {
@@ -28,8 +27,7 @@ type cacheEntry struct {
 	exp time.Time
 }
 
-// cached returns a new cache object configured with config.
-func cached(timeout time.Duration, rslv resolver) resolver {
+func cached(timeout time.Duration, rslv resolver) *cache {
 	c := &cache{
 		timeout: timeout,
 		rslv:    rslv,
@@ -43,7 +41,7 @@ func cached(timeout time.Duration, rslv resolver) resolver {
 
 	// It's important that this goroutine doesn't reference the cache object
 	// itself, otherwise it would never get garbage collected.
-	go cacheVaccum(&c.mutex, c.cache, c.done)
+	go cacheVacuum(&c.mutex, c.cache, c.done)
 	return c
 }
 
@@ -115,7 +113,7 @@ func (c *cache) remove(name string, entry *cacheEntry) {
 	c.mutex.Unlock()
 }
 
-func cacheVaccum(mutex *sync.RWMutex, cache map[string]*cacheEntry, done <-chan struct{}) {
+func cacheVacuum(mutex *sync.RWMutex, cache map[string]*cacheEntry, done <-chan struct{}) {
 	// This constant is used to limit the maximum number of cache entries
 	// visited during one vaccum pass to avoid locking the mutex for too
 	// long when the cache is large.
@@ -123,7 +121,7 @@ func cacheVaccum(mutex *sync.RWMutex, cache map[string]*cacheEntry, done <-chan 
 	// eventual consistency and evict stale entries from the cache.
 	const max = 100
 
-	ticker := time.NewTicker(1 * time.Second)
+	ticker := time.NewTicker(10 * time.Second)
 	defer ticker.Stop()
 
 	for {
@@ -131,25 +129,22 @@ func cacheVaccum(mutex *sync.RWMutex, cache map[string]*cacheEntry, done <-chan 
 		case <-done:
 			return
 		case now := <-ticker.C:
-			cacheVaccumPass(mutex, cache, now, max)
+			cacheVacuumPass(mutex, cache, now, max)
 		}
 	}
 }
 
-func cacheVaccumPass(mutex *sync.RWMutex, cache map[string]*cacheEntry, now time.Time, max int) {
-	mutex.Lock()
+func cacheVacuumPass(mutex *sync.RWMutex, cache map[string]*cacheEntry, now time.Time, max int) {
 	i := 0
+	mutex.Lock()
 
 	for name, entry := range cache {
 		if i++; i > max {
 			break
 		}
-
-		entry.RLock()
 		if now.After(entry.exp) {
 			delete(cache, name)
 		}
-		entry.RUnlock()
 	}
 
 	mutex.Unlock()

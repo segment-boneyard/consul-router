@@ -79,10 +79,9 @@ func main() {
 	defer dd.Close()
 
 	// The consul-based resolver used to lookup services.
-	rslv := preferred(config.prefer, shuffled(cached(
-		config.cacheTimeout,
-		consulResolver{address: config.consul},
-	)))
+	rslv := consulResolver{
+		address: config.consul,
+	}
 
 	// The domain name served by the router, prefix with '.' so it doesn't have
 	// to be done over and over in each http request.
@@ -127,7 +126,12 @@ func main() {
 		ReadTimeout:    config.readTimeout,
 		WriteTimeout:   config.writeTimeout,
 		MaxHeaderBytes: config.maxHeaderBytes,
-		Handler:        httpstats.NewHandler(nil, newServer(domain, rslv)),
+		Handler: httpstats.NewHandler(nil, newServer(serverConfig{
+			rslv:         rslv,
+			domain:       domain,
+			prefer:       config.prefer,
+			cacheTimeout: config.cacheTimeout,
+		})),
 	}).ListenAndServe(); err != nil {
 		log.WithError(err).Fatal("failed to serve http requests")
 	}

@@ -14,14 +14,27 @@ import (
 // The server type is a http handler that proxies requests and uses a resolver
 // to lookup the address to which it should send the requests.
 type server struct {
-	domain string
-	rslv   resolver
+	domain    string
+	blacklist *blacklist
+	cache     *cache
+	rslv      resolver
 }
 
-func newServer(domain string, rslv resolver) *server {
+type serverConfig struct {
+	rslv         resolver
+	domain       string
+	prefer       string
+	cacheTimeout time.Duration
+}
+
+func newServer(config serverConfig) *server {
+	c := cached(config.cacheTimeout, config.rslv)
+	b := blacklisted(config.cacheTimeout, c)
 	return &server{
-		domain: domain,
-		rslv:   rslv,
+		domain:    config.domain,
+		blacklist: b,
+		cache:     c,
+		rslv:      preferred(config.prefer, b),
 	}
 }
 
@@ -38,10 +51,10 @@ func (s *server) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 		w.WriteHeader(http.StatusServiceUnavailable)
 		log.WithFields(log.Fields{
 			"status": http.StatusServiceUnavailable,
+			"reason": http.StatusText(http.StatusServiceUnavailable),
 			"host":   req.Host,
 			"domain": s.domain,
-			"reason": "the requested host doesn't belong to the domain served by the router",
-		}).Error(http.StatusText(http.StatusServiceUnavailable))
+		}).Error("the requested host doesn't belong to the domain served by the router")
 		return
 	}
 
@@ -67,10 +80,10 @@ func (s *server) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 			w.WriteHeader(http.StatusInternalServerError)
 			log.WithFields(log.Fields{
 				"status": http.StatusInternalServerError,
+				"reason": http.StatusText(http.StatusInternalServerError),
 				"host":   host,
 				"error":  err,
-				"reason": "an error was returned by the resolver",
-			}).Error(http.StatusText(http.StatusInternalServerError))
+			}).Error("an error was returned by the resolver")
 			return
 		}
 
@@ -78,24 +91,32 @@ func (s *server) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 			w.WriteHeader(http.StatusBadGateway)
 			log.WithFields(log.Fields{
 				"status": http.StatusBadGateway,
+				"reason": http.StatusText(http.StatusBadGateway),
 				"host":   host,
-				"reason": "no service returned by the resolver",
-			}).Error(http.StatusText(http.StatusBadGateway))
+			}).Error("no service returned by the resolver")
 			return
 		}
 
 		// Prepare the request to be forwarded to the service.
-		req.Host = srv[0].host
+		address := net.JoinHostPort(srv[0].host, strconv.Itoa(srv[0].port))
 		req.URL.Scheme = "http"
-		req.URL.Host = net.JoinHostPort(srv[0].host, strconv.Itoa(srv[0].port))
+		req.URL.Host = address
 		req.Header.Set("Forwarded", forwarded(req))
-		req.Header.Set("Host", req.Host)
 
 		if res, err = http.DefaultTransport.RoundTrip(req); err == nil {
 			break // success
 		}
 
 		if attempt < maxAttempts && body.n == 0 && idempotent(req.Method) {
+			// Adding the host to the list of black-listed addresses so it
+			// doesn't get picked up again for the next retries.
+			s.blacklist.add(address)
+			log.WithFields(log.Fields{
+				"host":    host,
+				"address": address,
+				"error":   err,
+			}).Warn("black-listing failing service")
+
 			// Backoff: 0ms, 10ms, 40ms, 90ms ... 1000ms
 			time.Sleep(time.Duration(attempt*attempt) * 10 * time.Millisecond)
 			continue
@@ -104,10 +125,10 @@ func (s *server) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 		w.WriteHeader(http.StatusBadGateway)
 		log.WithFields(log.Fields{
 			"status": http.StatusBadGateway,
+			"reason": http.StatusText(http.StatusBadGateway),
 			"host":   host,
 			"error":  err,
-			"reason": "forwarding the request to the service returned an error",
-		}).Error(http.StatusText(http.StatusBadGateway))
+		}).Error("forwarding the request to the service returned an error")
 		return
 	}
 

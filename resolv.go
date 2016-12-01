@@ -45,7 +45,7 @@ func copyServices(srv []service) []service {
 type serviceList []service
 
 func (s serviceList) resolve(name string) ([]service, error) {
-	return ([]service)(s), nil
+	return copyServices(s), nil
 }
 
 // The serviceMap type implements the resolver interface and provides a simple
@@ -54,5 +54,5 @@ func (s serviceList) resolve(name string) ([]service, error) {
 type serviceMap map[string][]service
 
 func (s serviceMap) resolve(name string) ([]service, error) {
-	return s[name], nil
+	return copyServices(s[name]), nil
 }
