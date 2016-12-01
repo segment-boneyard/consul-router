@@ -45,6 +45,7 @@ func main() {
 		datadog string
 		domain  string
 		prefer  string
+		health  string
 
 		cacheTimeout time.Duration
 		dialTimeout  time.Duration
@@ -62,6 +63,7 @@ func main() {
 	flag.StringVar(&config.datadog, "datadog", "localhost:8125", "The address at which the router will send datadog metrics")
 	flag.StringVar(&config.domain, "domain", "localhost", "The domain for which the router will accept requests")
 	flag.StringVar(&config.prefer, "prefer", "", "The services with a tag matching the preferred value will be favored by the router")
+	flag.StringVar(&config.health, "bind-health-check", "", "The network address on which the will listen for health checks")
 	flag.DurationVar(&config.cacheTimeout, "cache-timeout", 10*time.Second, "The timeout for cached hostnames")
 	flag.DurationVar(&config.dialTimeout, "dial-timeout", 10*time.Second, "The timeout for dialing tcp connections")
 	flag.DurationVar(&config.readTimeout, "read-timeout", 30*time.Second, "The timeout for reading http requests")
@@ -100,6 +102,14 @@ func main() {
 		dd.Close()
 		os.Exit(int(sig.(syscall.Signal)))
 	}()
+
+	// Start the health check server.
+	if len(config.health) != 0 {
+		go http.ListenAndServe(config.health, http.HandlerFunc(func(res http.ResponseWriter, req *http.Request) {
+			// TODO: check something?
+			res.WriteHeader(http.StatusOK)
+		}))
+	}
 
 	// Configure the default http transport which is used for forwarding the requests.
 	http.DefaultTransport = httpstats.NewTransport(nil, &http.Transport{
