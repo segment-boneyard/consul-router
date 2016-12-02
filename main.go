@@ -92,7 +92,7 @@ func main() {
 	defer procstats.StartCollector(procstats.NewGoMetrics(nil)).Close()
 	defer procstats.StartCollector(procstats.NewProcMetrics(nil)).Close()
 
-	// Configure the base resolver used by the router to router requests.
+	// Configure the base resolver used by the router to forward requests.
 	var rslv resolver
 	switch {
 	case len(config.consul) != 0:
