@@ -6,6 +6,7 @@ import (
 	"io"
 	"net"
 	"net/http"
+	_ "net/http/pprof"
 	"os"
 	"os/signal"
 	"strings"
@@ -46,6 +47,7 @@ func main() {
 		domain  string
 		prefer  string
 		health  string
+		pprof   string
 
 		cacheTimeout    time.Duration
 		dialTimeout     time.Duration
@@ -57,14 +59,16 @@ func main() {
 		maxIdleConns        int
 		maxIdleConnsPerHost int
 		maxHeaderBytes      int
+		enableCompression   bool
 	}
 
 	flag.StringVar(&config.http, "bind-http", ":4000", "The network address on which the router will listen for incoming connections")
+	flag.StringVar(&config.pprof, "bind-pprof", "", "The network address on which router listens for profiling requests")
+	flag.StringVar(&config.health, "bind-health-check", "", "The network address on which the router listens for health checks")
 	flag.StringVar(&config.consul, "consul", "localhost:8500", "The address at which the router can access a consul agent")
 	flag.StringVar(&config.datadog, "datadog", "localhost:8125", "The address at which the router will send datadog metrics")
 	flag.StringVar(&config.domain, "domain", "localhost", "The domain for which the router will accept requests")
 	flag.StringVar(&config.prefer, "prefer", "", "The services with a tag matching the preferred value will be favored by the router")
-	flag.StringVar(&config.health, "bind-health-check", "", "The network address on which the will listen for health checks")
 	flag.DurationVar(&config.cacheTimeout, "cache-timeout", 10*time.Second, "The timeout for cached hostnames")
 	flag.DurationVar(&config.dialTimeout, "dial-timeout", 10*time.Second, "The timeout for dialing tcp connections")
 	flag.DurationVar(&config.readTimeout, "read-timeout", 30*time.Second, "The timeout for reading http requests")
@@ -74,6 +78,7 @@ func main() {
 	flag.IntVar(&config.maxIdleConns, "max-idle-conns", 10000, "The maximum number of idle connections kept")
 	flag.IntVar(&config.maxIdleConnsPerHost, "max-idle-conns-per-host", 100, "The maximum number of idle connections kept per host")
 	flag.IntVar(&config.maxHeaderBytes, "max-header-bytes", 65536, "The maximum number of bytes allowed in http headers")
+	flag.BoolVar(&config.enableCompression, "enable-compression", false, "When set the router will ask for compressed payloads")
 	flag.Parse()
 
 	// Atomic variable set to the http status returned by the http health check.
@@ -104,6 +109,11 @@ func main() {
 		}))
 	}
 
+	// Start hte profiler server.
+	if len(config.pprof) != 0 {
+		go http.ListenAndServe(config.pprof, nil)
+	}
+
 	// Configure the default http transport which is used for forwarding the requests.
 	http.DefaultTransport = httpstats.NewTransport(nil, &http.Transport{
 		DialContext:            dialer(config.dialTimeout),
@@ -113,6 +123,7 @@ func main() {
 		ResponseHeaderTimeout:  config.readTimeout,
 		ExpectContinueTimeout:  config.readTimeout,
 		MaxResponseHeaderBytes: int64(config.maxHeaderBytes),
+		DisableCompression:     !config.enableCompression,
 	})
 
 	// Configure and run the http server.

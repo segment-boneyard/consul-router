@@ -51,34 +51,34 @@
 			"revisionTime": "2016-07-26T19:29:10Z"
 		},
 		{
-			"checksumSHA1": "lOYsm2783oRiDO2RGi8N+Ad1NQo=",
+			"checksumSHA1": "HTKSjLw0gZLWWqTTSA26+K/ru4I=",
 			"path": "github.com/segmentio/stats",
-			"revision": "1d08e9a5ccea6bed68b78b8ac9a84213df7c9445",
-			"revisionTime": "2016-12-01T22:51:26Z"
+			"revision": "936b55491618d2a81897b767fea9a4fa90ed9356",
+			"revisionTime": "2016-12-02T02:38:11Z"
 		},
 		{
 			"checksumSHA1": "HhUJM+3g/L/m4A9iAbd8e366s3U=",
 			"path": "github.com/segmentio/stats/datadog",
-			"revision": "1d08e9a5ccea6bed68b78b8ac9a84213df7c9445",
-			"revisionTime": "2016-12-01T22:51:26Z"
+			"revision": "936b55491618d2a81897b767fea9a4fa90ed9356",
+			"revisionTime": "2016-12-02T02:38:11Z"
 		},
 		{
-			"checksumSHA1": "22G5GewyvBb3e6JvMyoBzn6twiE=",
+			"checksumSHA1": "iY2xgArQgFSwDbnf7aws2LE9bnU=",
 			"path": "github.com/segmentio/stats/httpstats",
-			"revision": "1d08e9a5ccea6bed68b78b8ac9a84213df7c9445",
-			"revisionTime": "2016-12-01T22:51:26Z"
+			"revision": "936b55491618d2a81897b767fea9a4fa90ed9356",
+			"revisionTime": "2016-12-02T02:38:11Z"
 		},
 		{
 			"checksumSHA1": "4ul0NZqgMJmqx8OgTWydXpoe0pA=",
 			"path": "github.com/segmentio/stats/iostats",
-			"revision": "1d08e9a5ccea6bed68b78b8ac9a84213df7c9445",
-			"revisionTime": "2016-12-01T22:51:26Z"
+			"revision": "936b55491618d2a81897b767fea9a4fa90ed9356",
+			"revisionTime": "2016-12-02T02:38:11Z"
 		},
 		{
 			"checksumSHA1": "PNxnfw2OtlfrjwK+RQOP9gqBnYI=",
 			"path": "github.com/segmentio/stats/netstats",
-			"revision": "1d08e9a5ccea6bed68b78b8ac9a84213df7c9445",
-			"revisionTime": "2016-12-01T22:51:26Z"
+			"revision": "936b55491618d2a81897b767fea9a4fa90ed9356",
+			"revisionTime": "2016-12-02T02:38:11Z"
 		},
 		{
 			"checksumSHA1": "9C4Av3ypK5pi173F76ogJT/d8x4=",
