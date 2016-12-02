@@ -19,6 +19,7 @@ import (
 	"github.com/apex/log/handlers/text"
 
 	"github.com/segmentio/ecs-logs-go/apex"
+	"github.com/segmentio/stats"
 	"github.com/segmentio/stats/datadog"
 	"github.com/segmentio/stats/httpstats"
 	"github.com/segmentio/stats/netstats"
@@ -152,6 +153,7 @@ func main() {
 			}).Fatal("failed to bind tcp address for http server")
 		}
 
+		httpLstn = netstats.NewListener(nil, httpLstn, stats.Tag{"side", "frontend"})
 		httpStop = make(chan struct{})
 		httpDone = make(chan struct{})
 
@@ -211,7 +213,7 @@ func dialer(timeout time.Duration) func(context.Context, string, string) (net.Co
 	return func(ctx context.Context, network string, address string) (net.Conn, error) {
 		conn, err := dialer.DialContext(ctx, network, address)
 		if conn != nil {
-			conn = netstats.NewConn(nil, conn)
+			conn = netstats.NewConn(nil, conn, stats.Tag{"side", "backend"})
 		}
 		return conn, err
 	}
