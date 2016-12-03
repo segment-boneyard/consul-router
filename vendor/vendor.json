@@ -29,44 +29,44 @@
 		{
 			"checksumSHA1": "bMkycyRW1VueXtRZHfs7crHuoeY=",
 			"path": "github.com/segmentio/stats",
-			"revision": "0686610ea62975ac22ccb12957f65081aea55526",
-			"revisionTime": "2016-12-03T00:56:56Z"
+			"revision": "a0055de693bd723cf8076f278c810d4f590b6a04",
+			"revisionTime": "2016-12-03T03:10:38Z"
 		},
 		{
-			"checksumSHA1": "N3Z6iCBs+pRKl8tiw+myThBLxOQ=",
+			"checksumSHA1": "ze4KIJzPfimbfzVRgJUE4czbpQU=",
 			"path": "github.com/segmentio/stats/datadog",
-			"revision": "0686610ea62975ac22ccb12957f65081aea55526",
-			"revisionTime": "2016-12-03T00:56:56Z"
+			"revision": "a0055de693bd723cf8076f278c810d4f590b6a04",
+			"revisionTime": "2016-12-03T03:10:38Z"
 		},
 		{
 			"checksumSHA1": "2oS0jMh05BSDvhlzkKMFk4oF1+k=",
 			"path": "github.com/segmentio/stats/httpstats",
-			"revision": "0686610ea62975ac22ccb12957f65081aea55526",
-			"revisionTime": "2016-12-03T00:56:56Z"
+			"revision": "a0055de693bd723cf8076f278c810d4f590b6a04",
+			"revisionTime": "2016-12-03T03:10:38Z"
 		},
 		{
 			"checksumSHA1": "poEpVOWzVNefnfJMu+Z6QgzXueQ=",
 			"path": "github.com/segmentio/stats/iostats",
-			"revision": "0686610ea62975ac22ccb12957f65081aea55526",
-			"revisionTime": "2016-12-03T00:56:56Z"
+			"revision": "a0055de693bd723cf8076f278c810d4f590b6a04",
+			"revisionTime": "2016-12-03T03:10:38Z"
 		},
 		{
 			"checksumSHA1": "WEN9ElYBcUzXEFpAIMj5Qn2OeiI=",
 			"path": "github.com/segmentio/stats/netstats",
-			"revision": "0686610ea62975ac22ccb12957f65081aea55526",
-			"revisionTime": "2016-12-03T00:56:56Z"
+			"revision": "a0055de693bd723cf8076f278c810d4f590b6a04",
+			"revisionTime": "2016-12-03T03:10:38Z"
 		},
 		{
 			"checksumSHA1": "qcEGeFAwb/6reryrBdJe9Sm6HnQ=",
 			"path": "github.com/segmentio/stats/procstats",
-			"revision": "0686610ea62975ac22ccb12957f65081aea55526",
-			"revisionTime": "2016-12-03T00:56:56Z"
+			"revision": "a0055de693bd723cf8076f278c810d4f590b6a04",
+			"revisionTime": "2016-12-03T03:10:38Z"
 		},
 		{
 			"checksumSHA1": "JYchMBzqbuql1ZMb4qspRLLm9/w=",
 			"path": "github.com/segmentio/stats/procstats/linux",
-			"revision": "0686610ea62975ac22ccb12957f65081aea55526",
-			"revisionTime": "2016-12-03T00:56:56Z"
+			"revision": "a0055de693bd723cf8076f278c810d4f590b6a04",
+			"revisionTime": "2016-12-03T03:10:38Z"
 		},
 		{
 			"checksumSHA1": "9C4Av3ypK5pi173F76ogJT/d8x4=",
