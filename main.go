@@ -162,7 +162,7 @@ func main() {
 				ReadTimeout:    config.readTimeout,
 				WriteTimeout:   config.writeTimeout,
 				MaxHeaderBytes: config.maxHeaderBytes,
-				Handler: httpstats.NewHandler(nil, newServer(serverConfig{
+				Handler: httpstats.NewHandler(nil, newHttpServer(httpServerConfig{
 					stop:         httpStop,
 					done:         httpDone,
 					rslv:         rslv,
