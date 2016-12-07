@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"flag"
 	"net"
 	"net/http"
 	_ "net/http/pprof"
@@ -18,6 +17,7 @@ import (
 	"github.com/apex/log"
 	"github.com/apex/log/handlers/text"
 
+	"github.com/segmentio/conf"
 	"github.com/segmentio/ecs-logs-go/apex"
 	"github.com/segmentio/stats"
 	"github.com/segmentio/stats/datadog"
@@ -41,54 +41,47 @@ func init() {
 }
 
 func main() {
-	var config struct {
-		http    string
-		consul  string
-		datadog string
-		domain  string
-		prefer  string
-		health  string
-		pprof   string
+	config := struct {
+		BindHTTP        string `conf:"bind-http" help:"The network address on which the router will listen for incoming connections"`
+		BindHealthCheck string `conf:"bind-health-check" help:"The network address on which the router listens for health checks"`
+		BindPProf       string `conf:"bind-pprof" help:"The network address on which router listens for profiling requests"`
+		Consul          string `conf:"consul" help:"The address at which the router can access a consul agent"`
+		Datadog         string `conf:"datadog" help:"The address at which the router will send datadog metrics"`
+		Domain          string `conf:"domain" help:"The domain for which the router will accept requests"`
+		Prefer          string `conf:"prefer" help:"The services with a tag matching the preferred value will be favored by the router"`
 
-		cacheTimeout    time.Duration
-		dialTimeout     time.Duration
-		readTimeout     time.Duration
-		writeTimeout    time.Duration
-		idleTimeout     time.Duration
-		shutdownTimeout time.Duration
+		CacheTimeout    time.Duration `conf:"cache-timeout" help:"The timeout for cached hostnames"`
+		DialTimeout     time.Duration `conf:"dial-timeout" help:"The timeout for dialing tcp connections"`
+		ReadTimeout     time.Duration `conf:"read-timeout" help:"The timeout for reading http requests"`
+		WriteTimeout    time.Duration `conf:"write-timeout" help:"The timeout for writing http requests"`
+		IdleTimeout     time.Duration `conf:"idle-timeout" help:"The timeout for idle connections"`
+		ShutdownTimeout time.Duration `conf:"shutdown-timeout" help:"The timeout for shutting down the router"`
 
-		maxIdleConns        int
-		maxIdleConnsPerHost int
-		maxHeaderBytes      int
-		enableCompression   bool
+		MaxIdleConns        int  `conf:"max-idle-conns" help:"The maximum number of idle connections kept"`
+		MaxIdleConnsPerHost int  `conf:"max-idle-conns-per-host" help:"The maximum number of idle connections kept per host"`
+		MaxHeaderBytes      int  `conf:"max-header-bytes" help:"The maximum number of bytes allowed in http headers"`
+		EnableCompression   bool `conf:"enable-compression" help:"When set the router will ask for compressed payloads"`
+	}{
+		CacheTimeout:        10 * time.Second,
+		DialTimeout:         10 * time.Second,
+		ReadTimeout:         30 * time.Second,
+		WriteTimeout:        30 * time.Second,
+		IdleTimeout:         90 * time.Second,
+		ShutdownTimeout:     10 * time.Second,
+		MaxIdleConns:        10000,
+		MaxIdleConnsPerHost: 100,
+		MaxHeaderBytes:      65536,
 	}
 
-	flag.StringVar(&config.http, "bind-http", "", "The network address on which the router will listen for incoming connections")
-	flag.StringVar(&config.pprof, "bind-pprof", "", "The network address on which router listens for profiling requests")
-	flag.StringVar(&config.health, "bind-health-check", "", "The network address on which the router listens for health checks")
-	flag.StringVar(&config.consul, "consul", "", "The address at which the router can access a consul agent")
-	flag.StringVar(&config.datadog, "datadog", "", "The address at which the router will send datadog metrics")
-	flag.StringVar(&config.domain, "domain", "", "The domain for which the router will accept requests")
-	flag.StringVar(&config.prefer, "prefer", "", "The services with a tag matching the preferred value will be favored by the router")
-	flag.DurationVar(&config.cacheTimeout, "cache-timeout", 10*time.Second, "The timeout for cached hostnames")
-	flag.DurationVar(&config.dialTimeout, "dial-timeout", 10*time.Second, "The timeout for dialing tcp connections")
-	flag.DurationVar(&config.readTimeout, "read-timeout", 30*time.Second, "The timeout for reading http requests")
-	flag.DurationVar(&config.writeTimeout, "write-timeout", 30*time.Second, "The timeout for writing http requests")
-	flag.DurationVar(&config.idleTimeout, "idle-timeout", 90*time.Second, "The timeout for idle connections")
-	flag.DurationVar(&config.shutdownTimeout, "shutdown-timeout", 10*time.Second, "The timeout for shutting down the router")
-	flag.IntVar(&config.maxIdleConns, "max-idle-conns", 10000, "The maximum number of idle connections kept")
-	flag.IntVar(&config.maxIdleConnsPerHost, "max-idle-conns-per-host", 100, "The maximum number of idle connections kept per host")
-	flag.IntVar(&config.maxHeaderBytes, "max-header-bytes", 65536, "The maximum number of bytes allowed in http headers")
-	flag.BoolVar(&config.enableCompression, "enable-compression", false, "When set the router will ask for compressed payloads")
-	flag.Parse()
+	conf.Load(&config)
 
 	// The datadog client that reports metrics generated by the router.
-	if len(config.datadog) != 0 {
+	if len(config.Datadog) != 0 {
 		dd := datadog.NewClient(datadog.ClientConfig{
-			Address: config.datadog,
+			Address: config.Datadog,
 		})
 		defer dd.Close()
-		log.WithField("address", config.datadog).Info("using datadog agent for metrics collection")
+		log.WithField("address", config.Datadog).Info("using datadog agent for metrics collection")
 	}
 	defer procstats.StartCollector(procstats.NewGoMetrics(nil)).Close()
 	defer procstats.StartCollector(procstats.NewProcMetrics(nil)).Close()
@@ -96,9 +89,9 @@ func main() {
 	// Configure the base resolver used by the router to forward requests.
 	var rslv resolver
 	switch {
-	case len(config.consul) != 0:
-		rslv = consulResolver{address: config.consul}
-		log.WithField("address", config.consul).Info("using consul agent for service discovery")
+	case len(config.Consul) != 0:
+		rslv = consulResolver{address: config.Consul}
+		log.WithField("address", config.Consul).Info("using consul agent for service discovery")
 	default:
 		rslv = serviceList(nil)
 		log.Warn("no service discovery backend was configured")
@@ -106,7 +99,7 @@ func main() {
 
 	// The domain name served by the router, prefix with '.' so it doesn't have
 	// to be done over and over in each http request.
-	domain := config.domain
+	domain := config.Domain
 	if len(domain) != 0 && !strings.HasPrefix(domain, ".") {
 		domain = "." + domain
 	}
@@ -114,29 +107,29 @@ func main() {
 	// Start the health check server, the status variable is used to report when
 	// the program is shutting down.
 	healthStatus := uint32(http.StatusOK)
-	if len(config.health) != 0 {
-		go http.ListenAndServe(config.health, http.HandlerFunc(func(res http.ResponseWriter, req *http.Request) {
+	if len(config.BindHealthCheck) != 0 {
+		go http.ListenAndServe(config.BindHealthCheck, http.HandlerFunc(func(res http.ResponseWriter, req *http.Request) {
 			res.WriteHeader(int(atomic.LoadUint32(&healthStatus)))
 		}))
-		log.WithField("address", config.health).Info("started health check server")
+		log.WithField("address", config.BindHealthCheck).Info("started health check server")
 	}
 
 	// Start hte profiler server.
-	if len(config.pprof) != 0 {
-		go http.ListenAndServe(config.pprof, nil)
-		log.WithField("address", config.pprof).Info("started profiling server")
+	if len(config.BindPProf) != 0 {
+		go http.ListenAndServe(config.BindPProf, nil)
+		log.WithField("address", config.BindPProf).Info("started profiling server")
 	}
 
 	// Configure the default http transport which is used for forwarding the requests.
 	http.DefaultTransport = httpstats.NewTransport(nil, &http.Transport{
-		DialContext:            dialer(config.dialTimeout),
-		IdleConnTimeout:        config.idleTimeout,
-		MaxIdleConns:           config.maxIdleConns,
-		MaxIdleConnsPerHost:    config.maxIdleConnsPerHost,
-		ResponseHeaderTimeout:  config.readTimeout,
-		ExpectContinueTimeout:  config.readTimeout,
-		MaxResponseHeaderBytes: int64(config.maxHeaderBytes),
-		DisableCompression:     !config.enableCompression,
+		DialContext:            dialer(config.DialTimeout),
+		IdleConnTimeout:        config.IdleTimeout,
+		MaxIdleConns:           config.MaxIdleConns,
+		MaxIdleConnsPerHost:    config.MaxIdleConnsPerHost,
+		ResponseHeaderTimeout:  config.ReadTimeout,
+		ExpectContinueTimeout:  config.ReadTimeout,
+		MaxResponseHeaderBytes: int64(config.MaxHeaderBytes),
+		DisableCompression:     !config.EnableCompression,
 	})
 
 	// Configure and run the http server.
@@ -145,10 +138,10 @@ func main() {
 	var httpDone chan struct{}
 	var err error
 
-	if len(config.http) != 0 {
-		if httpLstn, err = net.Listen("tcp", config.http); err != nil {
+	if len(config.BindHTTP) != 0 {
+		if httpLstn, err = net.Listen("tcp", config.BindHTTP); err != nil {
 			log.WithFields(log.Fields{
-				"address": config.http,
+				"address": config.BindHTTP,
 				"error":   err,
 			}).Fatal("failed to bind tcp address for http server")
 		}
@@ -159,23 +152,23 @@ func main() {
 
 		go func() {
 			if err := (&http.Server{
-				ReadTimeout:    config.readTimeout,
-				WriteTimeout:   config.writeTimeout,
-				MaxHeaderBytes: config.maxHeaderBytes,
+				ReadTimeout:    config.ReadTimeout,
+				WriteTimeout:   config.WriteTimeout,
+				MaxHeaderBytes: config.MaxHeaderBytes,
 				Handler: httpstats.NewHandler(nil, newHttpServer(httpServerConfig{
 					stop:         httpStop,
 					done:         httpDone,
 					rslv:         rslv,
 					domain:       domain,
-					prefer:       config.prefer,
-					cacheTimeout: config.cacheTimeout,
+					prefer:       config.Prefer,
+					cacheTimeout: config.CacheTimeout,
 				})),
 			}).Serve(httpLstn); err != nil && atomic.LoadUint32(&healthStatus) == http.StatusOK {
 				log.WithError(err).Fatal("failed to serve http requests")
 			}
 		}()
 
-		log.WithField("address", config.http).Info("started http server")
+		log.WithField("address", config.BindHTTP).Info("started http server")
 	}
 
 	// Gracefully shutdown when receiving a signal:
@@ -196,7 +189,7 @@ func main() {
 
 	for httpDone != nil {
 		select {
-		case <-time.After(config.shutdownTimeout):
+		case <-time.After(config.ShutdownTimeout):
 			return
 		case <-sigchan:
 			return

@@ -15,6 +15,18 @@
 			"revisionTime": "2016-09-05T15:13:04Z"
 		},
 		{
+			"checksumSHA1": "vMT+piher66IruU9TZNbL/6dYJ8=",
+			"path": "github.com/ghodss/yaml",
+			"revision": "a54de18a07046d8c4b26e9327698a2ebb9285b36",
+			"revisionTime": "2016-11-23T02:24:14Z"
+		},
+		{
+			"checksumSHA1": "jC9wl7o3INJq1Oaz7sZ1ujJ0GAI=",
+			"path": "github.com/segmentio/conf",
+			"revision": "4aeb4f87d968f6d5d7a4c01ce9e3c9b7f977c932",
+			"revisionTime": "2016-12-07T00:22:14Z"
+		},
+		{
 			"checksumSHA1": "exBQJLaBXogorrNlmjdaVifVdpc=",
 			"path": "github.com/segmentio/ecs-logs-go",
 			"revision": "49d047bbc69ccb12dfc6ad91e763d8f817550012",
@@ -25,6 +37,12 @@
 			"path": "github.com/segmentio/ecs-logs-go/apex",
 			"revision": "49d047bbc69ccb12dfc6ad91e763d8f817550012",
 			"revisionTime": "2016-07-26T19:29:10Z"
+		},
+		{
+			"checksumSHA1": "mdF4jxevxRCzHFMdVuqscGxdzHk=",
+			"path": "github.com/segmentio/jutil",
+			"revision": "4585c8bf761df9c67b34bf75e9fc62f0a3771198",
+			"revisionTime": "2016-08-02T17:54:54Z"
 		},
 		{
 			"checksumSHA1": "bMkycyRW1VueXtRZHfs7crHuoeY=",
@@ -79,6 +97,12 @@
 			"path": "golang.org/x/sys/unix",
 			"revision": "30237cf4eefd639b184d1f2cb77a581ea0be8947",
 			"revisionTime": "2016-11-19T15:29:01Z"
+		},
+		{
+			"checksumSHA1": "12GqsW8PiRPnezDDy0v4brZrndM=",
+			"path": "gopkg.in/yaml.v2",
+			"revision": "a5b47d31c556af34a302ce5d659e6fea44d90de0",
+			"revisionTime": "2016-09-28T15:37:09Z"
 		}
 	],
 	"rootPath": "github.com/segmentio/consul-router"
