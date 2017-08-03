@@ -3,10 +3,15 @@ machine:
     - curl -sSL https://s3.amazonaws.com/circle-downloads/install-circleci-docker.sh | bash -s -- 1.10.0
   services:
     - docker
+  environment:
+    ECR_ENABLED: True
 
 dependencies:
   pre:
     - docker login -e ${DOCKER_EMAIL} -u ${DOCKER_USER} -p ${DOCKER_PASS}
+    # get ECR creds
+    - pip install awscli==1.11.76
+    - $(aws ecr get-login --region $AWS_REGION)
   override:
     - docker pull segment/golang:latest
 
